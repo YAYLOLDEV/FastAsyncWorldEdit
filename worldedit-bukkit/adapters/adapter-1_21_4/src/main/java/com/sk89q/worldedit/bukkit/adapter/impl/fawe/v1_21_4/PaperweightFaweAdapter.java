@@ -362,7 +362,7 @@ public final class PaperweightFaweAdapter extends FaweAdapter<Tag, ServerLevel> 
             tags.put("Id", LinStringTag.of(id));
             return LinCompoundTag.of(tags);
         };
-        return new LazyBaseEntity(type, saveTag);
+        return new LazyBaseEntity(type, saveTag, BukkitAdapter.adapt(entity));
 
     }
 

@@ -38,42 +38,42 @@ public class AsyncPlayer extends PlayerProxy {
 
     @Override
     public void findFreePosition(Location searchPos) {
-        TaskManager.taskManager().sync(new RunnableVal<Boolean>() {
+        TaskManager.taskManager().syncWith(new RunnableVal<Boolean>() {
             @Override
             public void run(Boolean value) {
                 getBasePlayer().findFreePosition(searchPos);
             }
-        });
+        }, this);
     }
 
     @Override
     public void setOnGround(Location searchPos) {
-        TaskManager.taskManager().sync(new RunnableVal<Boolean>() {
+        TaskManager.taskManager().syncWith(new RunnableVal<Boolean>() {
             @Override
             public void run(Boolean value) {
                 getBasePlayer().setOnGround(searchPos);
             }
-        });
+        }, this);
     }
 
     @Override
     public void findFreePosition() {
-        TaskManager.taskManager().sync(new RunnableVal<Boolean>() {
+        TaskManager.taskManager().syncWith(new RunnableVal<Boolean>() {
             @Override
             public void run(Boolean value) {
                 getBasePlayer().findFreePosition();
             }
-        });
+        }, this);
     }
 
     @Override
     public boolean ascendLevel() {
-        return TaskManager.taskManager().sync(() -> getBasePlayer().ascendLevel());
+        return TaskManager.taskManager().syncWith(() -> getBasePlayer().ascendLevel(), this);
     }
 
     @Override
     public boolean descendLevel() {
-        return TaskManager.taskManager().sync(() -> getBasePlayer().descendLevel());
+        return TaskManager.taskManager().syncWith(() -> getBasePlayer().descendLevel(), this);
     }
 
     @Override
@@ -173,31 +173,34 @@ public class AsyncPlayer extends PlayerProxy {
 
     @Override
     public void setPosition(Vector3 pos, float pitch, float yaw) {
-        Fawe.instance().getQueueHandler().sync(() -> super.setPosition(pos, pitch, yaw));
+        TaskManager.taskManager().syncWith(() -> {
+            super.setPosition(pos, pitch, yaw);
+            return null;
+        }, this);
     }
 
     @Override
     public Location getBlockTrace(int range, boolean useLastBlock) {
-        return TaskManager.taskManager().sync(() -> {
+        return TaskManager.taskManager().syncWith(() -> {
             TargetBlock tb = new TargetBlock(AsyncPlayer.this, range, 0.2D);
             return useLastBlock ? tb.getAnyTargetBlock() : tb.getTargetBlock();
-        });
+        }, this);
     }
 
     @Override
     public Location getBlockTraceFace(int range, boolean useLastBlock) {
-        return TaskManager.taskManager().sync(() -> {
+        return TaskManager.taskManager().syncWith(() -> {
             TargetBlock tb = new TargetBlock(AsyncPlayer.this, range, 0.2D);
             return useLastBlock ? tb.getAnyTargetBlockFace() : tb.getTargetBlockFace();
-        });
+        }, this);
     }
 
     @Override
     public Location getSolidBlockTrace(int range) {
-        return TaskManager.taskManager().sync(() -> {
+        return TaskManager.taskManager().syncWith(() -> {
             TargetBlock tb = new TargetBlock(AsyncPlayer.this, range, 0.2D);
             return tb.getSolidTargetBlock();
-        });
+        }, this);
     }
 
     @Override
@@ -207,7 +210,7 @@ public class AsyncPlayer extends PlayerProxy {
 
     @Override
     public boolean passThroughForwardWall(int range) {
-        return TaskManager.taskManager().sync(() -> {
+        return TaskManager.taskManager().syncWith(() -> {
             int searchDist = 0;
             TargetBlock hitBlox = new TargetBlock(AsyncPlayer.this, range, 0.2);
             Extent world = getLocation().getExtent();
@@ -252,7 +255,7 @@ public class AsyncPlayer extends PlayerProxy {
             }
 
             return false;
-        });
+        }, this);
     }
 
 }

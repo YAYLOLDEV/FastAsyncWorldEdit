@@ -6,6 +6,7 @@ import com.bekvon.bukkit.residence.protection.CuboidArea;
 import com.fastasyncworldedit.core.regions.FaweMask;
 import com.fastasyncworldedit.core.util.TaskManager;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldedit.bukkit.WorldEditPlugin;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.regions.CuboidRegion;
 import org.apache.logging.log4j.Logger;
@@ -27,9 +28,9 @@ public class ResidenceFeature extends BukkitMaskManager implements Listener {
         return residence != null &&
                 (residence.getOwner().equals(player.getName()) ||
                         residence.getOwner().equals(player.getUniqueId().toString()) ||
-                        type == MaskType.MEMBER && TaskManager.taskManager().sync(() -> residence
+                        type == MaskType.MEMBER && TaskManager.taskManager().syncWith(() -> residence
                                 .getPermissions()
-                                .playerHas(player, "build", false)));
+                                .playerHas(player, "build", false), WorldEditPlugin.getInstance().wrapPlayer(player)));
     }
 
     @Override

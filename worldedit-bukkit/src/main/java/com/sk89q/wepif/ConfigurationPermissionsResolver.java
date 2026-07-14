@@ -54,7 +54,7 @@ public class ConfigurationPermissionsResolver implements PermissionsResolver {
     }
 
     @Override
-    public void load() {
+    public synchronized void load() {
         userGroups.clear();
         userPermissionsCache.clear();
         defaultPermissionsCache.clear();
@@ -112,7 +112,7 @@ public class ConfigurationPermissionsResolver implements PermissionsResolver {
     }
 
     @Override
-    public boolean hasPermission(String player, String permission) {
+    public synchronized boolean hasPermission(String player, String permission) {
         int dotPos = permission.lastIndexOf(".");
         if (dotPos > -1) {
             if (hasPermission(player, permission.substring(0, dotPos))) {
@@ -136,7 +136,7 @@ public class ConfigurationPermissionsResolver implements PermissionsResolver {
     }
 
     @Override
-    public boolean inGroup(String player, String group) {
+    public synchronized boolean inGroup(String player, String group) {
         Set<String> groups = userGroups.get(player.toLowerCase(Locale.ROOT));
         if (groups == null) {
             return false;
@@ -146,7 +146,7 @@ public class ConfigurationPermissionsResolver implements PermissionsResolver {
     }
 
     @Override
-    public String[] getGroups(String player) {
+    public synchronized String[] getGroups(String player) {
         Set<String> groups = userGroups.get(player.toLowerCase(Locale.ROOT));
         if (groups == null) {
             return new String[0];

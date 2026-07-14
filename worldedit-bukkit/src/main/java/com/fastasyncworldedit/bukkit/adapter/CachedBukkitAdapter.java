@@ -17,10 +17,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public abstract class CachedBukkitAdapter implements IBukkitAdapter {
 
-    private int[] itemTypes;
-    private int[] blockTypes;
+    private volatile int[] itemTypes;
+    private volatile int[] blockTypes;
 
-    private boolean init() {
+    private synchronized boolean init() {
         if (itemTypes == null) {
             Material[] materials = Material.values();
             itemTypes = new int[materials.length];

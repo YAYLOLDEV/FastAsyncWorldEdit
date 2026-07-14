@@ -53,7 +53,10 @@ public class BukkitPlayerBlockBag extends BlockBag implements SlottableBlockBag 
      */
     private void loadInventory() {
         if (items == null) {
-            items = player.getInventory().getContents();
+            items = TaskManager.taskManager().syncWith(
+                    () -> player.getInventory().getContents(),
+                    WorldEditPlugin.getInstance().wrapPlayer(player)
+            );
         }
     }
 
@@ -172,10 +175,10 @@ public class BukkitPlayerBlockBag extends BlockBag implements SlottableBlockBag 
     @Override
     public void flushChanges() {
         if (items != null) {
-            TaskManager.taskManager().sync(() -> {
+            TaskManager.taskManager().syncWith(() -> {
                 player.getInventory().setContents(items);
                 return null;
-            });
+            }, WorldEditPlugin.getInstance().wrapPlayer(player));
             items = null;
         }
     }

@@ -193,7 +193,7 @@ public class ExtentEntityCopy implements EntityFunction {
                                 uuid
                         );
                     } else {
-                        TaskManager.taskManager().sync(entity::remove);
+                        TaskManager.taskManager().syncWith(entity::remove, entity);
                         //FAWE end
                     }
                 }

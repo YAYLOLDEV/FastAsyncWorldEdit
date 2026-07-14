@@ -20,6 +20,7 @@
 package com.sk89q.worldedit.bukkit;
 
 import com.fastasyncworldedit.core.util.TaskManager;
+import com.fastasyncworldedit.bukkit.util.FoliaTaskManager;
 import com.sk89q.worldedit.bukkit.adapter.BukkitImplAdapter;
 import com.sk89q.worldedit.entity.BaseEntity;
 import com.sk89q.worldedit.entity.Entity;
@@ -84,6 +85,12 @@ public class BukkitEntity implements Entity {
     public boolean setLocation(Location location) {
         org.bukkit.entity.Entity entity = entityRef.get();
         if (entity != null) {
+            if (FoliaTaskManager.isRegionized()) {
+                java.util.concurrent.CompletableFuture<Boolean> future = entity.teleportAsync(
+                        BukkitAdapter.adapt(location)
+                );
+                return FoliaTaskManager.isTickThread() || future.join();
+            }
             return entity.teleport(BukkitAdapter.adapt(location));
         } else {
             return false;
@@ -113,7 +120,7 @@ public class BukkitEntity implements Entity {
     public boolean remove() {
         // synchronize the whole method, not just the remove operation as we always need to synchronize and
         // can make sure the entity reference was not invalidated in the few milliseconds between the next available tick (lol)
-        return TaskManager.taskManager().sync(() -> {
+        return TaskManager.taskManager().syncWith(() -> {
             org.bukkit.entity.Entity entity = entityRef.get();
             if (entity != null) {
                 try {
@@ -125,7 +132,12 @@ public class BukkitEntity implements Entity {
             } else {
                 return true;
             }
-        });
+        }, this);
+    }
+
+    @Nullable
+    public org.bukkit.entity.Entity getEntity() {
+        return entityRef.get();
     }
 
     @SuppressWarnings("unchecked")

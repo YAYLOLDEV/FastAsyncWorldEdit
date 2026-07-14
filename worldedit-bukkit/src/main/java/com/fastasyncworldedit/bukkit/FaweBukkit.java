@@ -11,6 +11,7 @@ import com.fastasyncworldedit.bukkit.regions.ResidenceFeature;
 import com.fastasyncworldedit.bukkit.regions.TownyFeature;
 import com.fastasyncworldedit.bukkit.regions.WorldGuardFeature;
 import com.fastasyncworldedit.bukkit.util.BukkitTaskManager;
+import com.fastasyncworldedit.bukkit.util.FoliaTaskManager;
 import com.fastasyncworldedit.bukkit.util.ItemUtil;
 import com.fastasyncworldedit.bukkit.util.image.BukkitImageViewer;
 import com.fastasyncworldedit.core.FAWEPlatformAdapterImpl;
@@ -72,7 +73,9 @@ public class FaweBukkit implements IFawe, Listener {
             } catch (Throwable e) {
                 LOGGER.error("Brush Listener Failed", e);
             }
-            if (PaperLib.isPaper() && Settings.settings().EXPERIMENTAL.DYNAMIC_CHUNK_RENDERING > 1) {
+            if (!FoliaTaskManager.isRegionized()
+                    && PaperLib.isPaper()
+                    && Settings.settings().EXPERIMENTAL.DYNAMIC_CHUNK_RENDERING > 1) {
                 new RenderListener(plugin);
             }
         } catch (final Throwable e) {
@@ -83,10 +86,10 @@ public class FaweBukkit implements IFawe, Listener {
         platformAdapter = new NMSAdapter();
 
         //PlotSquared support is limited to Spigot/Paper as of 02/20/2020
-        TaskManager.taskManager().later(this::setupPlotSquared, 0);
+        TaskManager.taskManager().laterGlobal(this::setupPlotSquared, 1);
 
         // Registered delayed Event Listeners
-        TaskManager.taskManager().task(() -> {
+        TaskManager.taskManager().taskGlobal(() -> {
             // Fix for ProtocolSupport
             Settings.settings().PROTOCOL_SUPPORT_FIX =
                     Bukkit.getPluginManager().isPluginEnabled("ProtocolSupport");
@@ -95,7 +98,9 @@ public class FaweBukkit implements IFawe, Listener {
             Bukkit.getPluginManager().registerEvents(FaweBukkit.this, FaweBukkit.this.plugin);
 
             // The tick limiter
-            new ChunkListener9();
+            if (!FoliaTaskManager.isRegionized()) {
+                new ChunkListener9();
+            }
         });
 
         // Warn if small-edits are enabled with extended world heights
@@ -172,7 +177,15 @@ public class FaweBukkit implements IFawe, Listener {
      */
     @Override
     public TaskManager getTaskManager() {
+        if (FoliaTaskManager.isRegionized()) {
+            return new FoliaTaskManager(plugin);
+        }
         return new BukkitTaskManager(plugin);
+    }
+
+    @Override
+    public boolean isMainThread() {
+        return FoliaTaskManager.isRegionized() ? FoliaTaskManager.isTickThread() : Bukkit.isPrimaryThread();
     }
 
     public Plugin getPlugin() {

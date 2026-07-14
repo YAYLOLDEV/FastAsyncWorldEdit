@@ -119,7 +119,10 @@ public class PaperweightGetBlocks extends AbstractBukkitGetBlocks<ServerLevel, L
     }
 
     public PaperweightGetBlocks(ServerLevel serverLevel, int chunkX, int chunkZ) {
-        super(serverLevel, chunkX, chunkZ, serverLevel.getMinBuildHeight(), serverLevel.getMaxBuildHeight() - 1);
+        super(
+                serverLevel.getWorld(), serverLevel, chunkX, chunkZ,
+                serverLevel.getMinBuildHeight(), serverLevel.getMaxBuildHeight() - 1
+        );
         this.skyLight = new DataLayer[getSectionCount()];
         this.blockLight = new DataLayer[getSectionCount()];
         this.biomeRegistry = serverLevel.registryAccess().registryOrThrow(BIOME);

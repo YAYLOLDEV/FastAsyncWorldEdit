@@ -359,7 +359,7 @@ public final class PaperweightFaweAdapter extends FaweAdapter<net.minecraft.nbt.
             //add Id for AbstractChangeSet to work
             return output.toBuilder().putString("Id", id).build();
         };
-        return new LazyBaseEntity(type, saveTag);
+        return new LazyBaseEntity(type, saveTag, BukkitAdapter.adapt(entity));
     }
 
     @Override

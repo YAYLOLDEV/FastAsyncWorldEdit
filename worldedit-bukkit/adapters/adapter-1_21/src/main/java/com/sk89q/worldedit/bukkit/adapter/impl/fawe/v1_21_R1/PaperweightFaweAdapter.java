@@ -379,7 +379,7 @@ public final class PaperweightFaweAdapter extends FaweAdapter<net.minecraft.nbt.
                 tags.put("Id", LinStringTag.of(id));
                 return LinCompoundTag.of(tags);
             };
-            return new LazyBaseEntity(type, saveTag);
+            return new LazyBaseEntity(type, saveTag, BukkitAdapter.adapt(entity));
         } else {
             return null;
         }

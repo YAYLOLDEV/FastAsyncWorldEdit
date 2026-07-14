@@ -4,7 +4,10 @@ import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.queue.implementation.QueueHandler;
 import com.fastasyncworldedit.core.util.task.RunnableVal;
+import com.sk89q.worldedit.entity.Entity;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
+import com.sk89q.worldedit.util.Location;
+import com.sk89q.worldedit.world.World;
 import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
@@ -76,6 +79,23 @@ public abstract class TaskManager {
      * @param runnable the task to run
      */
     public abstract void task(@Nonnull final Runnable runnable);
+
+    public void task(@Nonnull final Runnable runnable, @Nonnull final Location location) {
+        task(runnable, (World) location.getExtent(), location.getBlockX() >> 4, location.getBlockZ() >> 4);
+    }
+
+    public void task(
+            @Nonnull final Runnable runnable,
+            @Nonnull final World world,
+            final int chunkX,
+            final int chunkZ
+    ) {
+        task(runnable);
+    }
+
+    public void taskGlobal(@Nonnull final Runnable runnable) {
+        task(runnable);
+    }
 
     /**
      * Get the public ForkJoinPool.
@@ -232,6 +252,14 @@ public abstract class TaskManager {
      */
     public abstract void later(@Nonnull final Runnable runnable, final int delay);
 
+    public void later(@Nonnull final Runnable runnable, @Nonnull final Location location, final int delay) {
+        later(runnable, delay);
+    }
+
+    public void laterGlobal(@Nonnull final Runnable runnable, final int delay) {
+        later(runnable, delay);
+    }
+
     /**
      * Run a task later asynchronously.
      *
@@ -246,6 +274,9 @@ public abstract class TaskManager {
      * @param task the id of the task to cancel
      */
     public abstract void cancel(final int task);
+
+    public void cancelAll() {
+    }
 
     /**
      * Break up a task and run it in fragments of 5ms.<br>
@@ -371,6 +402,27 @@ public abstract class TaskManager {
         } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public <T> T syncAt(@Nonnull final Supplier<T> supplier, @Nonnull final Location location) {
+        return syncAt(supplier, (World) location.getExtent(), location.getBlockX() >> 4, location.getBlockZ() >> 4);
+    }
+
+    public <T> T syncAt(
+            @Nonnull final Supplier<T> supplier,
+            @Nonnull final World world,
+            final int chunkX,
+            final int chunkZ
+    ) {
+        return sync(supplier);
+    }
+
+    public <T> T syncWith(@Nonnull final Supplier<T> supplier, @Nonnull final Entity entity) {
+        return sync(supplier);
+    }
+
+    public <T> T syncGlobal(@Nonnull final Supplier<T> supplier) {
+        return sync(supplier);
     }
 
 }

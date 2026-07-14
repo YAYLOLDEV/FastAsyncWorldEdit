@@ -1,5 +1,6 @@
 package com.fastasyncworldedit.bukkit.adapter;
 
+import com.fastasyncworldedit.bukkit.util.FoliaTaskManager;
 import com.fastasyncworldedit.core.Fawe;
 import com.fastasyncworldedit.core.configuration.Settings;
 import com.fastasyncworldedit.core.internal.exception.FaweException;
@@ -11,7 +12,9 @@ import com.fastasyncworldedit.core.queue.IQueueExtent;
 import com.fastasyncworldedit.core.queue.implementation.QueueHandler;
 import com.fastasyncworldedit.core.queue.implementation.blocks.CharGetBlocks;
 import com.fastasyncworldedit.core.util.MemUtil;
+import com.fastasyncworldedit.core.util.TaskManager;
 import com.fastasyncworldedit.core.util.task.FaweThreadUtil;
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import com.sk89q.worldedit.extent.Extent;
 import com.sk89q.worldedit.internal.util.LogManagerCompat;
 import com.sk89q.worldedit.util.formatting.text.TextComponent;
@@ -24,12 +27,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 
 public abstract class AbstractBukkitGetBlocks<ServerLevel, LevelChunk> extends CharGetBlocks {
 
     private static final Logger LOGGER = LogManagerCompat.getLogger();
 
     protected final ServerLevel serverLevel;
+    protected final org.bukkit.World bukkitWorld;
     protected final int chunkX;
     protected final int chunkZ;
     protected final ReentrantLock callLock = new ReentrantLock();
@@ -42,9 +47,10 @@ public abstract class AbstractBukkitGetBlocks<ServerLevel, LevelChunk> extends C
     protected int copyKey = 0;
 
     protected AbstractBukkitGetBlocks(
-            ServerLevel serverLevel, int chunkX, int chunkZ, int minY, int maxY
+            org.bukkit.World bukkitWorld, ServerLevel serverLevel, int chunkX, int chunkZ, int minY, int maxY
     ) {
         super(minY >> 4, maxY >> 4);
+        this.bukkitWorld = bukkitWorld;
         this.serverLevel = serverLevel;
         this.chunkX = chunkX;
         this.chunkZ = chunkZ;
@@ -89,18 +95,14 @@ public abstract class AbstractBukkitGetBlocks<ServerLevel, LevelChunk> extends C
         final int finalCopyKey = copyKey;
         // Run immediately if possible
         if (chunk != null) {
-            return tryInternalCall(set, finalizer, finalCopyKey, chunk, nmsWorld);
+            LevelChunk loadedChunk = chunk;
+            return runAtChunk(() -> tryInternalCall(set, finalizer, finalCopyKey, loadedChunk, nmsWorld));
         }
         // Submit via the STQE as that will help handle excessive queuing by waiting for the submission count to fall below the
         // target size
         final Extent extent = FaweThreadUtil.getCurrentExtent();
-        nmsChunkFuture.thenApply(nmsChunk -> owner.submitTaskUnchecked(() -> (T) tryWrappedInternalCall(
-                set,
-                finalizer,
-                finalCopyKey,
-                nmsChunk,
-                nmsWorld,
-                extent
+        nmsChunkFuture.thenApply(nmsChunk -> owner.submitTaskUnchecked(() -> (T) runAtChunk(
+                () -> tryWrappedInternalCall(set, finalizer, finalCopyKey, nmsChunk, nmsWorld, extent)
         )));
         // If we have re-submitted, return a completed future to prevent potential deadlocks where a future reliant on the
         // above submission is halting the BlockingExecutor, and preventing the above task from actually running. The futures
@@ -170,6 +172,15 @@ public abstract class AbstractBukkitGetBlocks<ServerLevel, LevelChunk> extends C
                     throw e;
                 }
             };
+            if (FoliaTaskManager.isRegionized()) {
+                return (T) runAtChunk(() -> {
+                    try {
+                        return chain.call();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
             //noinspection unchecked - required at compile time
             return (T) (Future) queueHandler.sync(chain);
         } else {
@@ -180,6 +191,18 @@ public abstract class AbstractBukkitGetBlocks<ServerLevel, LevelChunk> extends C
             }
         }
         return null;
+    }
+
+    private <T> T runAtChunk(Supplier<T> supplier) {
+        if (!FoliaTaskManager.isRegionized()) {
+            return supplier.get();
+        }
+        return TaskManager.taskManager().syncAt(
+                supplier,
+                BukkitAdapter.adapt(bukkitWorld),
+                chunkX,
+                chunkZ
+        );
     }
 
     @Override

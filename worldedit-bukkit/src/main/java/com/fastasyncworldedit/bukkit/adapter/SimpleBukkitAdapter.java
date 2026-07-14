@@ -11,9 +11,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 public class SimpleBukkitAdapter extends CachedBukkitAdapter {
 
-    private BlockData[][] blockDataCache;
+    private volatile BlockData[][] blockDataCache;
 
-    private boolean init() {
+    private synchronized boolean init() {
         if (blockDataCache != null) {
             return false;
         }
@@ -51,7 +51,12 @@ public class SimpleBukkitAdapter extends CachedBukkitAdapter {
             int propId = block.getInternalPropertiesId();
             BlockData blockData = dataCache[propId];
             if (blockData == null) {
-                dataCache[propId] = blockData = Bukkit.createBlockData(block.getAsString());
+                synchronized (dataCache) {
+                    blockData = dataCache[propId];
+                    if (blockData == null) {
+                        dataCache[propId] = blockData = Bukkit.createBlockData(block.getAsString());
+                    }
+                }
             }
             return blockData;
         } catch (NullPointerException e) {
